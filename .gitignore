@@ -1,0 +1,15 @@
+# Runtime logs and cache
+*.log
+*.netsh
+github_tree_cache.json
+
+# Generated large matrices (built locally via batch scripts)
+optimized_hosts.txt
+optimized_rules_merged.txt
+
+# Python
+__pycache__/
+*.pyc
+
+# Local zip packages
+*.zip

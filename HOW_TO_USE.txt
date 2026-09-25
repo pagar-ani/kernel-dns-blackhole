@@ -1,0 +1,55 @@
+====================================================================
+  kernel-dns-blackhole (v1.0.0) - Zero-Leak Dual-DNS & L3 Blackhole
+====================================================================
+
+Solves two critical Windows endpoint security flaws:
+1. Corporate DNS queries leaking over public Wi-Fi when VPN drops.
+2. Windows dnscache CPU lockups from multi-megabyte hosts files.
+
+--------------------------------------------------------------------
+  PREREQUISITES
+--------------------------------------------------------------------
+1. Windows 10 or 11 (64-bit).
+2. Python 3.x installed (check "Add Python to PATH" during install).
+3. YogaDNS Free Basic Tier installed: https://yogadns.com/download/
+
+--------------------------------------------------------------------
+  QUICK SETUP GUIDE (5 Steps)
+--------------------------------------------------------------------
+Step 1: Open "Configuration.template.xml" in Notepad.
+        - Replace "YOUR_WIREGUARD_INTERFACE_NAME" with your WireGuard
+          adapter name (e.g. wg0 or tunnel name from WireGuard GUI).
+        - Replace "10.0.0.1" with your internal corporate DNS IP.
+        - Import into YogaDNS: File -> Import Configuration.
+
+Step 2: Double-click "update_sinkhole.bat".
+        - Compiles 3.6 million domains from lst.txt into optimized
+          hosts format and hot-reloads YogaDNS with zero downtime.
+
+Step 3: Right-click "update_blackhole.bat" -> Run as Administrator.
+        - Ingests high-confidence malicious botnet/C2 IPs from ips.txt,
+          collapses subnets, and null-routes to loopback in ~5 seconds.
+
+Step 4: Double-click "install_tasks.bat".
+        - Registers two native Windows Scheduled Tasks so both the
+          kernel blackhole and YogaDNS updates run automatically
+          on startup and on a recurring schedule.
+
+Step 5: Verify.
+        - Connect WireGuard: YogaDNS logs route queries to Corporate Pool.
+        - Disconnect WireGuard: Queries instantly failover to Cloudflare DoH.
+          Zero corporate DNS queries leak over public Wi-Fi.
+
+--------------------------------------------------------------------
+  HOW TO UNINSTALL
+--------------------------------------------------------------------
+1. Right-click "uninstall_tasks.bat" -> Run as Administrator.
+   - Cleans up scheduled tasks and terminates background loops.
+2. In YogaDNS, File -> Reset to Defaults or uninstall YogaDNS.
+
+--------------------------------------------------------------------
+  SOURCE & UPDATES
+--------------------------------------------------------------------
+GitHub: https://github.com/pagar-ani/kernel-dns-blackhole
+License: MIT
+====================================================================
