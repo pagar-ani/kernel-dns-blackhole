@@ -61,5 +61,5 @@ Step 5: Verify.
   SOURCE & DOCUMENTATION
 --------------------------------------------------------------------
 GitHub: https://github.com/pagar-ani/kernel-dns-blackhole
-License: GNU Affero General Public License v3.0 (AGPL-3.0)
+License: AGPL-3.0 (Any commercial use requires explicit written permission)
 ====================================================================

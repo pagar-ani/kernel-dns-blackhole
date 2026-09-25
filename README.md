@@ -186,4 +186,6 @@ To completely remove all routing entries and automated background schedules:
 ---
 
 ### License
-Licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE). Open for institutional, enterprise, and personal deployment.
+Licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE).
+
+**Commercial Restriction**: Free for personal, non-commercial, and open-source deployment. Any commercial use, proprietary redistribution, commercial integration, or enterprise re-selling requires explicit prior written permission.
