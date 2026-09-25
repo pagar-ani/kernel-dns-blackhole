@@ -2,63 +2,64 @@
   kernel-dns-blackhole (v1.0.0) - Zero-Leak Dual-DNS & L3 Blackhole
 ====================================================================
 
-Two-Tier Endpoint Defense for Windows:
-1. Layer 3 Kernel RAM Blackhole (TCPIP.sys):
-   - Null-routes 65,000+ botnet/C2 IPs directly in volatile RAM in ~5s.
-   - Zero disk writes, zero registry bloat.
-2. Layer 7 Stateful Domain Sinkhole (YogaDNS):
-   - Blocks 3.6 million tracking/malware domains via optimized_hosts.txt.
-   - Auto-switches DNS: Uses Corporate DNS when WireGuard is connected,
-     and fails over to encrypted Cloudflare DoH when WireGuard drops.
-   - Zero corporate DNS leaks over public Wi-Fi.
+Dual-Tier Endpoint Security Architecture for Windows 10/11:
+1. Tier 1 (Layer 3): Bare-metal Kernel RAM Blackhole (TCPIP.sys)
+   - Null-routes 65,000+ verified botnet/C2 IPs directly in volatile RAM.
+   - Stored in kernel memory (store=active) — zero disk or registry writes.
+2. Tier 2 (Layer 7): Stateful Domain Sinkhole (YogaDNS)
+   - Intercepts 3.6 million tracking, advertising, and malware domains.
+   - Automates split-horizon switching: Routes to Corporate DNS when
+     WireGuard is active; auto-diverts to encrypted Cloudflare DoH when
+     WireGuard is offline. Zero corporate DNS leakage over public Wi-Fi.
 
 --------------------------------------------------------------------
   PREREQUISITES
 --------------------------------------------------------------------
 1. Windows 10 or 11 (64-bit).
-2. Python 3.x installed (check "Add Python to PATH" during install).
+2. Python 3.x installed (ensure "Add Python to PATH" is checked).
 3. YogaDNS Free Basic Tier installed: https://yogadns.com/download/
 
 --------------------------------------------------------------------
-  QUICK SETUP GUIDE (5 Steps)
+  DEPLOYMENT PROTOCOL (Step-by-Step)
 --------------------------------------------------------------------
-Step 1: Open "Configuration.template.xml" in Notepad.
-        - Replace "YOUR_WIREGUARD_INTERFACE_NAME" with your WireGuard
-          adapter name (e.g. wg0 or tunnel name from WireGuard GUI).
-        - Replace "YOUR_CORPORATE_DNS_IPV4" with your internal corporate
-          DNS IP.
+Step 1: Open "Configuration.template.xml" in an editor.
+        - Set "YOUR_WIREGUARD_INTERFACE_NAME" to your WireGuard adapter
+          name (e.g., wg0 or tunnel name).
+        - Set "YOUR_CORPORATE_DNS_IPV4" and "YOUR_CORPORATE_DNS_IPV6"
+          to your internal corporate DNS server addresses.
         - Import into YogaDNS: File -> Import Configuration.
 
 Step 2: Double-click "update_sinkhole.bat".
-        - Compiles 3.6 million domains from lst.txt into optimized
-          hosts format (9 domains/line) and hot-reloads YogaDNS with
-          zero packet drop.
+        - Compiles 3.6 million domains from 16 curated threat feeds into
+          an optimized 9-domain-per-line hosts file and reloads YogaDNS
+          with zero packet drops.
 
 Step 3: Right-click "update_blackhole.bat" -> Run as Administrator.
-        - Ingests high-confidence malicious botnet/C2 IPs from ips.txt,
-          collapses subnets via Radix trees, and injects Layer 3 null-routes
-          into volatile kernel RAM in ~5 seconds flat.
+        - Ingests high-confidence C2/botnet IP feeds from ips.txt, collapses
+          subnets via Radix trees, and deploys Layer 3 null-routes to
+          volatile kernel RAM in ~5 seconds.
 
 Step 4: Double-click "install_tasks.bat".
         - Registers two native Windows Scheduled Tasks so both the
-          kernel RAM blackhole and YogaDNS updates run automatically
-          on startup and on a recurring schedule.
+          kernel RAM blackhole and YogaDNS updates execute automatically
+          at startup and on recurring schedules.
 
 Step 5: Verify.
         - Connect WireGuard: YogaDNS logs route queries to Corporate Pool.
         - Disconnect WireGuard: Queries instantly failover to Cloudflare DoH.
-          Zero corporate DNS queries leak over public Wi-Fi.
+          Corporate hostnames are never broadcast over public physical networks.
 
 --------------------------------------------------------------------
-  HOW TO UNINSTALL
+  TEARDOWN PROTOCOL (Clean Removal)
 --------------------------------------------------------------------
 1. Right-click "uninstall_tasks.bat" -> Run as Administrator.
-   - Cleans up scheduled tasks and terminates background loops.
-2. In YogaDNS, File -> Reset to Defaults or uninstall YogaDNS.
+   - Unregisters all automated background tasks from Windows Task Scheduler.
+2. Reset or uninstall YogaDNS: File -> Reset to Defaults.
+3. Volatile kernel null-routes clear automatically on machine reboot.
 
 --------------------------------------------------------------------
-  SOURCE & UPDATES
+  SOURCE & DOCUMENTATION
 --------------------------------------------------------------------
 GitHub: https://github.com/pagar-ani/kernel-dns-blackhole
-License: AGPL-3.0 (GNU Affero General Public License v3.0)
+License: GNU Affero General Public License v3.0 (AGPL-3.0)
 ====================================================================
