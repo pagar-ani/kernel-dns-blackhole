@@ -1,137 +1,189 @@
 # kernel-dns-blackhole
 
-Dual-tier endpoint defense for Windows 10/11: Bare-metal Layer 3 Kernel RAM blackhole + Layer 7 state-aware DNS sinkhole with automatic WireGuard failover.
+Dual-tier Windows endpoint security architecture combining bare-metal Layer 3 Kernel RAM null-routing (`TCPIP.sys`) with state-aware Layer 7 DNS filtering (YogaDNS) and deterministic WireGuard failover.
 
-Built to solve two stubborn Windows networking headaches:
-1. **Corporate DNS Leaks**: Windows leaking internal DNS queries across public Wi-Fi when VPN drops.
-2. **DNS & Firewall Freezes**: Multi-megabyte `hosts` files causing 100% CPU lockups, and massive firewall rule imports freezing disk I/O.
+Engineered to resolve two systemic networking limitations on Windows 10/11:
+1. **Corporate DNS Telemetry Leaks**: Windows Smart Multi-Homed Name Resolution broadcasting internal queries across unencrypted public physical adapters whenever VPN interfaces fluctuate.
+2. **Resolver & Kernel Lockups**: Multi-megabyte flat `hosts` files driving Windows `dnscache` to 100% single-core saturation, and persistent route registry bloat causing 30-minute disk I/O freezes.
 
 ---
 
-### The Two-Tier Defense Architecture
-
-Unlike basic DNS switchers or flat hosts blockers, this ecosystem runs two distinct physical layers:
+### Architectural Design
 
 ```
+[Inbound Application Traffic / DNS Query]
+                  │
+                  ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ TIER 1: WINDOWS KERNEL RAM BLACKHOLE (Layer 3 - TCPIP.sys)                  │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ • Ingests 65,000+ malicious botnet & C2 IP subnets from threat feeds.       │
-│ • STORED 100% IN VOLATILE RAM (store=active) — Zero disk writes!            │
-│ • Injects in ~5 seconds flat (avoids the 30-minute Windows Registry lockup).│
-│ • Packets dropped at Layer 3 kernel routing before socket/firewall inspection.│
+│ • Ingests high-confidence malicious botnet & C2 IP subnets from threat feeds. │
+│ • Stored entirely in volatile RAM (store=active) — Zero registry I/O bloat. │
+│ • Compiles and injects 65,000+ routes in ~5 seconds via native netsh.       │
+│ • Packets dropped at kernel routing boundary before socket inspection.      │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ TIER 2: YOGADNS STATEFUL DOMAIN SINKHOLE (Layer 7 - WFP Proxy)              │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ • Blocks 3.6 million tracking, ad, and malware domains at Layer 7.          │
-│ • Compresses 92 MB blocklist to ~3.6 MB via the 9-domain-per-line trick.    │
-│ • Zero CPU saturation: completely bypasses Windows dnscache lockup.         │
-│ • Zero-downtime hot reload via YogaDNS -reload without dropping connections. │
+│ • Intercepts 3.6 million tracking, advertising, and phishing domains.       │
+│ • Compresses 92 MB blocklist to ~3.6 MB using 9-domain-per-line DNS scaling.│
+│ • Zero CPU saturation: completely bypasses Windows dnscache bottlenecks.    │
+│ • Zero-downtime hot reload via YogaDNS -reload without dropping sockets.    │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ THE MASTER SWITCH: WIREGUARD AUTO-FAILOVER (Zero-Leak)                      │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ • WireGuard UP   ──► Queries route to <YOUR_CORPORATE_DNS_IP> in tunnel.    │
-│ • WireGuard DOWN ──► Auto-switches to Cloudflare DoH (1.0.0.2).             │
-│ • Corporate hostnames NEVER touch public Wi-Fi or local ISP adapters.       │
+│ • WireGuard Active   ──► Routes to <YOUR_CORPORATE_DNS_IP> inside tunnel.   │
+│ • WireGuard Inactive ──► Auto-diverts to Cloudflare Security DoH (1.0.0.2). │
+│ • Corporate hostnames never touch public Wi-Fi or local ISP gateways.       │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### Why this is required itself?
+### Threat Intelligence Taxonomy & Transparency
 
-- **The Hosts File Mess**: Windows DNS cache service (`dnscache`) is single-threaded. Pointing it to a massive 90MB hosts file locks CPU at 100% and spikes ping latency.
-- **The Windows VPN Leak**: Windows Smart Multi-Homed Name Resolution sends queries out of *all* network adapters simultaneously. The moment your WireGuard tunnel fluctuates, internal corporate hostnames leak right onto public Wi-Fi.
-- **Why Acrylic and DNSCrypt Fail**: Neither tracks the dynamic NDIS adapter states of transient WireGuard (`Wintun`) interfaces.
-- **The Registry I/O Death**: Writing 65,000 routes persistently into `HKLM\...\PersistentRoutes` takes 30+ minutes and grinds Windows disk I/O to a dead stop. Our Tier 1 engine uses `store=active` to push directly into volatile kernel RAM in 5 seconds.
+To ensure strict operational safety and prevent service disruption, threat ingestion is strictly bifurcated between Layer 3 and Layer 7:
+
+#### 1. Tier 1: Layer 3 IP Blackhole Feeds (`ips.txt`)
+*Architectural Rationale*: Multi-tenant CDNs (Cloudflare, AWS, Fastly) host both benign services and advertising endpoints on shared edge IPs. Null-routing an IP address associated with an advertising server would inadvertently break access to legitimate infrastructure. Therefore, **Layer 3 null-routing is strictly restricted to verified malicious C2 and botnet infrastructure**:
+
+| Threat Provider | Feed Purpose | Target Threat Vector |
+| :--- | :--- | :--- |
+| **GreenSnow** | Global Brute-Force Feeds | Automated SSH/RDP brute-force and port scanners |
+| **Emerging Threats (Block)** | Firewall Rule Drops | Verified botnet controllers, malware drop sites |
+| **Emerging Threats (Compromised)** | Compromised Hosts | Host infrastructure actively participating in attacks |
+| **Binary Defense Systems** | Banlist Feed | Live reconnaissance and exploitation IP ranges |
+| **stamparm/ipsum (Level 3)** | Multi-Source Intelligence | High-confidence threats cited across $\ge 3$ blacklists |
+| **Malware-Filter (Phishing)** | Abuse.ch / Gitlab Feed | Dedicated active phishing hosting servers |
+| **Malware-Filter (URLhaus)** | Abuse.ch Telemetry | Infrastructure distributing verified malware payloads |
+
+*Safeguard*: An immutable hardcoded whitelist protects core upstream infrastructure (`1.1.1.1`, `8.8.8.8`, `9.9.9.9`, etc.) from accidental inclusion.
+
+#### 2. Tier 2: Layer 7 Domain Feeds (`lst.txt`)
+Domain-level blocking provides fine-grained control without collateral network damage. Ingests ~3.6 million domains across 16 established threat lists:
+
+| Feed Source | Primary Focus |
+| :--- | :--- |
+| **1Hosts (Xtra)** | Aggressive tracking, telemetry, scam, and malware domains |
+| **CombinedPrivacyBlockLists** | Windows telemetry and third-party advertising tracking |
+| **Dan Pollock (someonewhocares)** | Curated anti-malware and commercial tracking sinks |
+| **Frogeye (1st & Multi-party)** | Third-party analytics beacons and data brokers |
+| **HaGeZi (Multi TIF & Ultimate)** | Extensive threat intelligence and telemetry aggregation |
+| **Bundy01 Meta Blocklists** | Consolidated dual-stack IPv4/IPv6 domain blocklists |
+| **Pi-hole Core Blocklist** | General advertisement networks and IoT telemetry |
+| **PhishDestroy** | Zero-day credential harvesting and credential fraud |
+| **DurableNapkin Scam List** | Fraudulent web domains, investment scams, and malvertising |
+| **StevenBlack Unified** | Comprehensive baseline protection across ads and malware |
+| **Th3M3 Malware List** | Cryptominers, banking trojans, and ransomware endpoints |
+| **iam-py-test Anti-Malware** | Fast-cycling emerging zero-day malware distribution domains |
+| **URLhaus (abuse.ch)** | Validated active malware distribution domains |
 
 ---
 
-### How the WireGuard Auto-Switching Works
+### Deterministic WireGuard Switching (Zero-Leak)
 
-In `Configuration.template.xml`, YogaDNS uses:
+In [`Configuration.template.xml`](Configuration.template.xml), the engine enables:
 ```xml
 <Settings ignore_rule_if_interface_down="1" ... />
 ```
 
-The rules execute strictly from top to bottom:
+Rules execute strictly sequentially from top to bottom:
 
-| Order | Rule Name | Condition | Action | Target Destination |
+| Order | Rule Name | Trigger Condition | Engine Action | Target Resolver |
 | :--- | :--- | :--- | :--- | :--- |
 | **01** | `01-Sinkhole` | Domain matches `optimized_hosts.txt` | **Block** | Returns `0.0.0.0` immediately |
-| **02** | `02-WireGuard-Corporate` | WireGuard adapter is **UP** | **Process** | `<YOUR_CORPORATE_DNS_IP>` (Inside Tunnel) |
-| **03** | `03-Default-Failover` | WireGuard adapter is **DOWN** | **Process** | Cloudflare Security DoH (`1.0.0.2`) |
+| **02** | `02-WireGuard-Corporate` | WireGuard NDIS Adapter is **UP** | **Process** | `<YOUR_CORPORATE_DNS_IP>` (Inside Tunnel) |
+| **03** | `03-Default-Failover` | WireGuard NDIS Adapter is **DOWN** | **Process** | Cloudflare Security DoH (`1.0.0.2`) |
 
-When you disconnect WireGuard, YogaDNS detects the interface is down, **skips Rule 02 completely**, and falls straight through to Rule 03. Your corporate DNS is never queried over public Wi-Fi.
+When the WireGuard tunnel drops, YogaDNS detects the missing NDIS adapter handle, **instantly skips Rule 02**, and evaluates Rule 03. Internal corporate hostnames are never transmitted across the local physical adapter.
 
 ---
 
-### Quick Setup (5 Steps)
+### Deployment Protocol
 
 #### 1. Prerequisites
 - Windows 10 or 11 (64-bit).
-- Python 3.x installed (make sure "Add Python to PATH" is checked).
+- Python 3.x installed with `python` available on system PATH.
 - [YogaDNS (Free Basic Tier)](https://yogadns.com/download/) installed.
 
-#### 2. Configure Your YogaDNS Profile
-1. Open `Configuration.template.xml` in Notepad.
-2. Replace `YOUR_WIREGUARD_INTERFACE_NAME` with your actual WireGuard adapter name (e.g. `wg0` or tunnel name from WireGuard GUI).
-3. Replace `YOUR_CORPORATE_DNS_IPV4` with your internal corporate DNS IP.
-4. Import into YogaDNS: **File -> Import Configuration** (or copy to `%APPDATA%\YogaDNS\Configuration.xml`).
+#### 2. Profile Configuration
+1. Open `Configuration.template.xml` in an editor.
+2. Set `YOUR_WIREGUARD_INTERFACE_NAME` to your WireGuard adapter name (e.g., `wg0` or tunnel label).
+   - *Query via PowerShell*: `Get-NetIPInterface | Where-Object { $_.InterfaceAlias -like "*wireguard*" }`
+3. Set `YOUR_CORPORATE_DNS_IPV4` and `YOUR_CORPORATE_DNS_IPV6` to your internal corporate resolver addresses.
+4. Import into YogaDNS: **YogaDNS -> File -> Import Configuration** (or copy directly to `%APPDATA%\YogaDNS\Configuration.xml`).
 
-#### 3. Build Domain Sinkhole (Tier 2)
-Double-click:
-```cmd
-update_sinkhole.bat
-```
-*Parses 16 threat feeds from `lst.txt`, deduplicates 3.6M domains, chunks 9 domains per line into `optimized_hosts.txt`, copies to YogaDNS AppData, and triggers silent reload.*
+#### 3. Compile Feeds
+Open terminal in project root:
 
-#### 4. Inject Kernel RAM Blackhole (Tier 1)
-Right-click and select **Run as Administrator**:
-```cmd
-update_blackhole.bat
-```
-*Pulls malicious botnet/C2 IPs from `ips.txt`, collapses subnets via Radix trees, and injects Layer 3 null-routes straight into volatile kernel RAM in ~5 seconds.*
+1. **Compile Domain Sinkhole (Tier 2)**:
+   ```cmd
+   update_sinkhole.bat
+   ```
+   *Fetches 16 domain lists, compresses via 9-domain chunking, writes to `%APPDATA%\YogaDNS\optimized_hosts.txt`, and triggers silent zero-downtime reload.*
 
-#### 5. Arm Automatic Startup
+2. **Inject Kernel RAM Blackhole (Tier 1)**:
+   Right-click and select **Run as Administrator**:
+   ```cmd
+   update_blackhole.bat
+   ```
+   *Ingests C2 IP lists, collapses subnets via Radix trees, and deploys Layer 3 null-routes to volatile kernel RAM in ~5 seconds.*
+
+#### 4. Enable Automated Startup
 Double-click:
 ```cmd
 install_tasks.bat
 ```
-Registers two native Windows Scheduled Tasks:
-- **`Kernel_Blackhole_Engine`**: Runs on Windows boot (`-AtStartup`) + every 3 days under `SYSTEM` (re-injects RAM blackhole table).
-- **`YogaDNS_Sinkhole_Update`**: Runs every Sunday at 02:00 to refresh domain blocklists and hot-reload YogaDNS.
-
-*(To uninstall scheduled tasks at any time, run `uninstall_tasks.bat`).*
+Registers two persistent scheduled tasks:
+- **`Kernel_Blackhole_Engine`**: Re-injects volatile RAM routes on Windows startup (`-AtStartup`) and updates every 3 days under `NT AUTHORITY\SYSTEM`.
+- **`YogaDNS_Sinkhole_Update`**: Refreshes domain blocklists every Sunday at 02:00.
 
 ---
 
-### How to Test
+### Teardown Protocol (Clean Removal)
+
+To completely remove all routing entries and automated background schedules:
+
+1. Right-click and select **Run as Administrator**:
+   ```cmd
+   uninstall_tasks.bat
+   ```
+   *Terminates running engines and unregisters scheduled tasks from Windows Task Scheduler.*
+2. Reset or remove YogaDNS: Open YogaDNS $\to$ **File** $\to$ **Reset to Defaults** (or uninstall via Windows Settings).
+3. To flush all volatile kernel null-routes immediately without restarting:
+   ```powershell
+   Restart-Service -Name "Tcpip" -Force
+   ```
+   *(Or simply reboot the machine; all `store=active` routes clear automatically on power cycle).*
+
+---
+
+### Operational Verification
 
 1. **Verify WireGuard Failover**:
-   - Disconnect WireGuard. Check YogaDNS log at the bottom of the window $\to$ queries map to **Rule 03 (Cloudflare DoH)**.
-   - Connect WireGuard $\to$ queries immediately map to **Rule 02 (Corporate-Pool)**.
-2. **Verify Kernel RAM Blackhole**:
-   - Run in terminal:
+   - Disconnect WireGuard. Check the YogaDNS live execution log at the bottom of the interface $\to$ requests route to **Rule 03 (Cloudflare DoH)**.
+   - Connect WireGuard $\to$ requests map strictly to **Rule 02 (Corporate-Pool)**.
+2. **Verify Kernel Blackhole Injection**:
+   - Query the routing table for the custom allocation metric:
      ```cmd
      netsh interface ipv4 show route | findstr "9999"
      ```
-   - Shows thousands of malicious CIDRs null-routed to Loopback with Metric 9999.
+   - Confirms thousands of malicious subnets pointed to Loopback with Metric `9999`.
 
 ---
 
-### Technical Invariants
+### Architectural Invariants
 
-1. **Keep Corporate DNS on Plain UDP**: Never enable TCP or DNSSEC for internal corporate pools. Internal DNS servers often reject TCP fallback or lack external DNSSEC chains, leading to heavy timeout penalties.
-2. **Immutable Whitelist Guard**: `optimized_ingestion.py` hardcodes an immutable whitelist (`1.1.1.1`, `8.8.8.8`, `9.9.9.9`, etc.) so contaminated threat lists never null-route upstream DNS resolvers.
+1. **UDP Exclusivity on Corporate Pools**: Internal resolvers must remain configured for plain UDP (`plain_use_tcp="0"`). Enabling TCP fallback or DNSSEC on internal split-horizon systems induces severe handshake timeouts.
+2. **Volatile RAM Storage (`store=active`)**: Routes are written exclusively to kernel memory to prevent Windows Registry disk thrashing.
+3. **WMI Bypass**: Teardown parsing relies on flat `netsh` script generation to prevent CLR/WMI memory allocation exhaustion.
 
 ---
 
 ### License
-GNU Affero General Public License v3.0 (AGPL-3.0). Do the needful and deploy responsibly.
+Licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE). Open for institutional, enterprise, and personal deployment.
