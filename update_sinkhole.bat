@@ -1,4 +1,4 @@
 @echo off
-REM Enterprise Headless Scheduler Wrapper (YogaDNS Matrix)
+REM Enterprise YogaDNS Sinkhole Runner
 cd /d "%~dp0"
 python optimizer.py
