@@ -14,7 +14,7 @@ Deploying flat threat-block lists directly into the Windows DNS Client (`svchost
 
 This ecosystem resolves these issues using a two-tier hybrid defense:
 - **Tier 1 (Layer 3) - Windows Kernel RAM Blackhole (`TCPIP.sys`)**: Outbound malicious IP null-routing directly inside the Windows kernel network stack via `store=active` volatile RAM routing (zero disk writes, zero registry bloat).
-- **Tier 2 (Layer 7) - Stateful Domain Interceptor (YogaDNS Basic)**: Stateful conditional routing that binds to `Wintun` NDIS states and sinkholes 3.6M domains via `optimized_hosts.txt` using 9-domain chunking.
+- **Tier 2 (Layer 7) - Stateful Domain Interceptor (YogaDNS Basic)**: Stateful conditional routing that binds to `Wintun` NDIS states and sinkholes 4.4M+ domains via `optimized_hosts.txt` using 9-domain chunking.
 
 ---
 
@@ -23,13 +23,13 @@ This ecosystem resolves these issues using a two-tier hybrid defense:
 Standard Windows DNS resolvers bottleneck when reading flat domain lists. We deploy a concurrent Python engine to ingest, deduplicate, and compress 16 discrete threat lists (`lst.txt`).
 
 - **ThreadPool Concurrency**: Asynchronously streams feeds and extracts domains into memory.
-- **$O(1)$ Hash Set Deduplication**: Deduplicates ~3.6 million domains down to unique records.
+- **$O(1)$ Hash Set Deduplication**: Deduplicates 4.4+ million domains down to unique records.
 - **The 9-Domain-Per-Line DNS Scaling Trick**:
   Standard DNS client implementations support up to 9 domain aliases mapped to a single IP per line:
   ```text
   0.0.0.0 d1.com d2.com d3.com d4.com d5.com d6.com d7.com d8.com d9.com
   ```
-  This reduces file size by **~90%**, shrinking a 90MB flat file down to ~3.6MB, enabling instantaneous memory parsing by resolvers.
+  This reduces file line count by **~89%**, compressing multi-hundred-megabyte raw threat lists down to a dense ~96MB payload, enabling instantaneous memory parsing by resolvers.
 - **Zero-Downtime Hot Reload**:
   The script propagates `optimized_hosts.txt` to `%APPDATA%\YogaDNS\` and invokes `YogaDNS.exe -reload`. The proxy engine re-reads the payload into memory with zero packet drops.
 
@@ -52,7 +52,7 @@ This attribute in `Configuration.xml` controls the conditional failover:
                   ▼
 ┌────────────────────────────────────────────────────────┐
 │ Tier 01: The Sinkhole (optimized_hosts.txt)            │
-│ Is domain in 3.6M blocklist?                           │
+│ Is domain in 4.4M+ blocklist?                          │
 └────────────────────────────────────────────────────────┘
          │ YES                           │ NO
          ▼                               ▼
@@ -87,12 +87,12 @@ To eliminate dependency on software application firewalls, high-confidence malic
 1. **Immutable Whitelist Guard**:
    Threat feeds frequently get poisoned or inadvertently list public root DNS infrastructure. An immutable hardcoded whitelist (`1.1.1.1`, `8.8.8.8`, `9.9.9.9`, etc.) checks all candidate subnets via `ipaddress.overlaps()` before compilation.
 2. **Radix Tree Subnet Collapse**:
-   Uses `ipaddress.collapse_addresses()` to merge overlapping single IPs and ranges into contiguous CIDR blocks, minimizing kernel route table size.
+   Uses `ipaddress.collapse_addresses()` to merge overlapping single IPs and ranges into contiguous CIDR blocks, collapsing ~27,000 raw feed lines into 21,000+ minimal routing entries.
 3. **Bypassing WMI / PowerShell Memory Exhaustion**:
-   Previous approaches using `Remove-NetRoute` for 65,000 routes exhaust WMI/CLR memory and freeze the OS for 3+ minutes.
+   Previous approaches using `Remove-NetRoute` for tens of thousands of routes exhaust WMI/CLR memory and freeze the OS for minutes.
    `deploy_blackhole.ps1` parses `netsh interface ipv4 show route` text output with Metric `9999`, generates flat `v4_clean.netsh` scripts, and tears down stale routes in <2 seconds.
 4. **Bypassing Windows "Registry I/O Death" (`store=active` in RAM)**:
-   Standard persistent route injection writes to `HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\PersistentRoutes`. Writing 65,000 keys sequentially causes massive disk I/O lockups lasting 30+ minutes.
-   Adding `store=active` writes routes directly to volatile kernel RAM in **~5 seconds** with **zero disk writes**.
+   Standard persistent route injection writes to `HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\PersistentRoutes`. Sequentially committing 20,000+ keys causes massive disk I/O lockups lasting 30+ minutes during boot.
+   Adding `store=active` writes routes directly to volatile kernel RAM in **~2 seconds** with **zero disk writes**.
 5. **Reboot Persistence via Task Scheduler**:
-   Because `store=active` routes are cleared on reboot, the `Kernel_Blackhole_Engine` task runs `-AtStartup` under `NT AUTHORITY\SYSTEM` to rebuild the RAM routing table before user login completes.
+   Because `store=active` routes clear on reboot, the `Kernel_Blackhole_Engine` task runs `-AtStartup` and `-AtLogOn` with `RunLevel: Highest` to rebuild the RAM routing table before user application network traffic commences.

@@ -4,7 +4,8 @@
 
 Dual-Tier Endpoint Security Architecture for Windows 10/11:
 1. Tier 1 (Layer 3): Bare-metal Kernel RAM Blackhole (TCPIP.sys)
-   - Null-routes 65,000+ verified botnet/C2 IPs directly in volatile RAM.
+   - Null-routes 21,000+ verified botnet/C2 CIDRs (collapsed from 27,000+
+     threat entries) directly in volatile RAM.
    - Stored in kernel memory (store=active) — zero disk or registry writes.
 2. Tier 2 (Layer 7): Stateful Domain Sinkhole (YogaDNS)
    - Intercepts 4.4+ million tracking, advertising, and malware domains.
@@ -54,9 +55,10 @@ Step 5: Verify.
   TEARDOWN PROTOCOL (Clean Removal)
 --------------------------------------------------------------------
 1. Right-click "uninstall_tasks.bat" -> Run as Administrator.
-   - Unregisters all automated background tasks from Windows Task Scheduler.
+   - Unregisters all automated background tasks from Windows Task Scheduler
+     and purges all metric 9999 RAM routes via netsh batch.
 2. Reset or uninstall YogaDNS: File -> Reset to Defaults.
-3. Volatile kernel null-routes clear automatically on machine reboot.
+3. Volatile kernel null-routes also clear automatically on machine reboot.
 
 --------------------------------------------------------------------
   SOURCE & DOCUMENTATION
