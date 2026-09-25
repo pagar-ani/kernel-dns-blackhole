@@ -4,8 +4,8 @@ https://someonewhocares.org/hosts/zero/hosts
 https://hostfiles.frogeye.fr/multiparty-only-trackers-hosts.txt
 https://hostfiles.frogeye.fr/firstparty-only-trackers-hosts.txt
 https://hostfiles.frogeye.fr/firstparty-trackers-hosts.txt
-https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/tif.txt
-https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/ultimate.txt
+https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists-legacy@latest/domains/tif.txt
+https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists-legacy@latest/domains/ultimate.txt
 https://raw.githubusercontent.com/Bundy01/meta-blocklists/refs/heads/main/meta-hosts_4+6.txt
 https://raw.githubusercontent.com/ph00lt0/blocklists/master/pihole-blocklist.txt
 https://raw.githubusercontent.com/phishdestroy/destroylist/main/rootlist/formats/primary/hosts.txt

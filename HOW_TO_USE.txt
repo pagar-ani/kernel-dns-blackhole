@@ -7,7 +7,7 @@ Dual-Tier Endpoint Security Architecture for Windows 10/11:
    - Null-routes 65,000+ verified botnet/C2 IPs directly in volatile RAM.
    - Stored in kernel memory (store=active) — zero disk or registry writes.
 2. Tier 2 (Layer 7): Stateful Domain Sinkhole (YogaDNS)
-   - Intercepts 3.6 million tracking, advertising, and malware domains.
+   - Intercepts 4.4+ million tracking, advertising, and malware domains.
    - Automates split-horizon switching: Routes to Corporate DNS when
      WireGuard is active; auto-diverts to encrypted Cloudflare DoH when
      WireGuard is offline. Zero corporate DNS leakage over public Wi-Fi.
@@ -30,8 +30,8 @@ Step 1: Open "Configuration.template.xml" in an editor.
         - Import into YogaDNS: File -> Import Configuration.
 
 Step 2: Double-click "update_sinkhole.bat".
-        - Compiles 3.6 million domains from 16 curated threat feeds into
-          an optimized 9-domain-per-line hosts file and reloads YogaDNS
+        - Compiles 4.4+ million domains from 16 curated threat feeds into
+          an optimized 9-domain-per-line hosts file and updates YogaDNS
           with zero packet drops.
 
 Step 3: Right-click "update_blackhole.bat" -> Run as Administrator.

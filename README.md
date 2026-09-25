@@ -27,10 +27,10 @@ Engineered to resolve two systemic networking limitations on Windows 10/11:
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ TIER 2: YOGADNS STATEFUL DOMAIN SINKHOLE (Layer 7 - WFP Proxy)              │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ • Intercepts 3.6 million tracking, advertising, and phishing domains.       │
-│ • Compresses 92 MB blocklist to ~3.6 MB using 9-domain-per-line DNS scaling.│
+│ • Intercepts 4.4+ million tracking, advertising, and phishing domains.       │
+│ • Deduplicates 16 threat feeds into unified 9-domain-per-line DNS scaling.   │
 │ • Zero CPU saturation: completely bypasses Windows dnscache bottlenecks.    │
-│ • Zero-downtime hot reload via YogaDNS -reload without dropping sockets.    │
+│ • Zero-downtime hot reload via direct AppData hosts cache synchronization.  │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼
@@ -65,7 +65,7 @@ To ensure strict operational safety and prevent service disruption, threat inges
 *Safeguard*: An immutable hardcoded whitelist protects core upstream infrastructure (`1.1.1.1`, `8.8.8.8`, `9.9.9.9`, etc.) from accidental inclusion.
 
 #### 2. Tier 2: Layer 7 Domain Feeds (`lst.txt`)
-Domain-level blocking provides fine-grained control without collateral network damage. Ingests ~3.6 million domains across 16 established threat lists:
+Domain-level blocking provides fine-grained control without collateral network damage. Ingests 4.4+ million unique domains across 16 established threat lists:
 
 | Feed Source | Primary Focus |
 | :--- | :--- |
@@ -140,7 +140,7 @@ Double-click:
 install_tasks.bat
 ```
 Registers two persistent scheduled tasks:
-- **`Kernel_Blackhole_Engine`**: Re-injects volatile RAM routes on Windows startup (`-AtStartup`) and updates every 3 days under `NT AUTHORITY\SYSTEM`.
+- **`Kernel_Blackhole_Engine`**: Re-injects volatile RAM routes on Windows startup (`-AtStartup`) and updates every 3 days under elevated administrative privileges (`RunLevel: Highest`).
 - **`YogaDNS_Sinkhole_Update`**: Refreshes domain blocklists every Sunday at 02:00.
 
 ---

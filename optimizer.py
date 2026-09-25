@@ -85,27 +85,15 @@ def main():
     end_time = time.time()
     logger.info(f"Optimization compiled in {end_time - start_time:.2f} seconds.")
 
-    # YogaDNS AppData Sync & Live Reload Matrix
+    # YogaDNS AppData Sync Matrix
     appdata_dir = os.path.join(os.environ.get('APPDATA', ''), 'YogaDNS')
     if os.path.exists(appdata_dir):
         appdata_out = os.path.join(appdata_dir, 'optimized_hosts.txt')
         try:
             shutil.copy2(primary_out, appdata_out)
             logger.info("Threat list successfully propagated to YogaDNS AppData physical cache.")
-            
-            # Trigger silent reload into the proxy daemon without dropping NDIS packets
-            yogadns_bin = os.path.join(os.environ.get('ProgramFiles(x86)', r"C:\Program Files (x86)"), "YogaDNS", "YogaDNS.exe")
-            if not os.path.exists(yogadns_bin):
-                yogadns_bin = os.path.join(os.environ.get('ProgramFiles', r"C:\Program Files"), "YogaDNS", "YogaDNS.exe")
-
-            if os.path.exists(yogadns_bin):
-                logger.info("Triggering Zero-Downtime YogaDNS Core Reload via Subprocess execution...")
-                subprocess.run([yogadns_bin, "-reload"], check=False)
-                logger.info("Proxy Engine state successfully refreshed.")
-            else:
-                logger.warning(f"YogaDNS binary not found at standard path: {yogadns_bin}. Reload skipped.")
         except Exception as e:
-            logger.error(f"Failed to propagate or reload YogaDNS state: {e}")
+            logger.error(f"Failed to propagate YogaDNS hosts cache: {e}")
     else:
         logger.warning(f"YogaDNS AppData directory not found. Expected: {appdata_dir}")
 
