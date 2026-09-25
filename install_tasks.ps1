@@ -17,13 +17,14 @@ Write-Host "[*] Registering Scheduled Tasks from: $workDir" -ForegroundColor Cya
 $blackholeBat = Join-Path $workDir "update_blackhole.bat"
 $action1 = New-ScheduledTaskAction -Execute $blackholeBat -WorkingDirectory $workDir
 $triggerStartup = New-ScheduledTaskTrigger -AtStartup
+$triggerLogon = New-ScheduledTaskTrigger -AtLogOn
 $trigger3Days = New-ScheduledTaskTrigger -Daily -DaysInterval 3 -At 02:00
 $settings1 = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit 0
 $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 $principal1 = New-ScheduledTaskPrincipal -UserId $currentUser -LogonType Interactive -RunLevel Highest
 
-Register-ScheduledTask -TaskName "Kernel_Blackhole_Engine" -Action $action1 -Trigger @($triggerStartup, $trigger3Days) -Settings $settings1 -Principal $principal1 -Force | Out-Null
-Write-Host "[+] Task 'Kernel_Blackhole_Engine' registered (Runs at boot + every 3 days with Highest Privileges)." -ForegroundColor Green
+Register-ScheduledTask -TaskName "Kernel_Blackhole_Engine" -Action $action1 -Trigger @($triggerStartup, $triggerLogon, $trigger3Days) -Settings $settings1 -Principal $principal1 -Force | Out-Null
+Write-Host "[+] Task 'Kernel_Blackhole_Engine' registered (Runs at boot/logon + every 3 days with Highest Privileges)." -ForegroundColor Green
 
 # 2. YogaDNS Sinkhole Update Task (Runs weekly every Sunday at 02:00 as current user)
 $sinkholeBat = Join-Path $workDir "update_sinkhole.bat"
