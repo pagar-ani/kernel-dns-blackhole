@@ -1,27 +1,18 @@
 @echo off
-REM Enterprise Network Blackhole Orchestrator (Kernel TCPIP Route Matrix)
+REM Enterprise Kernel Blackhole Runner
+cd /d "%~dp0"
 
-:: STRICT UAC ELEVATION CHECK
 net session >nul 2>&1
 if %errorLevel% neq 0 (
-    echo [!] ERROR: Execution denied. Mandatory Administrative Token missing.
-    echo [*] Requesting dynamic UAC Elevation...
+    echo [!] Requesting Administrative Privileges for Kernel Blackhole...
     powershell -Command "Start-Process cmd -ArgumentList '/c \"%~dpnx0\"' -Verb RunAs"
     exit /b
 )
 
-cd /d "%~dp0"
-
-SET LOGFILE="%~dp0blackhole_engine.log"
-
-echo ======================================================== >> %LOGFILE%
-echo [%DATE% %TIME%] [*] Blackhole Sequence Initiated... >> %LOGFILE%
-
-echo [*] Executing Native IP Radix Optimization...
+echo [*] Resolving and collapsing Radix IP feeds...
 python optimized_ingestion.py
 
-echo [*] Injecting Mathematical Blackhole Routes...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& { Start-Transcript -Path '%~dp0ps1_injection.log' -Append; & '%~dp0deploy_blackhole.ps1'; Stop-Transcript }"
+echo [*] Injecting volatile RAM routes into TCPIP.sys...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0deploy_blackhole.ps1"
 
-echo [%DATE% %TIME%] [+] Enterprise Orchestration Sequence Complete. >> %LOGFILE%
-echo [+] Blackhole injection complete.
+echo [+] Blackhole deployment cycle complete.
