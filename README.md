@@ -61,6 +61,8 @@ To ensure strict operational safety and prevent service disruption, threat inges
 | **stamparm/ipsum (Level 3)** | Multi-Source Intelligence | High-confidence threats cited across $\ge 3$ blacklists |
 | **Malware-Filter (Phishing)** | Abuse.ch / Gitlab Feed | Dedicated active phishing hosting servers |
 | **Malware-Filter (URLhaus)** | Abuse.ch Telemetry | Infrastructure distributing verified malware payloads |
+| **abuse.ch (Feodo Tracker)** | Botnet C2 IP Blocklist | Active banking trojan and botnet command-and-control servers |
+| **abuse.ch (SSLBL)** | Malicious SSL Blacklist | Attacker-controlled SSL/TLS certificates and C2 infrastructure |
 
 *Safeguard*: An immutable hardcoded whitelist protects core upstream infrastructure (`1.1.1.1`, `8.8.8.8`, `9.9.9.9`, etc.) from accidental inclusion.
 
@@ -134,14 +136,20 @@ Open terminal in project root:
    ```
    *Ingests C2 IP lists, collapses subnets via Radix trees, and deploys Layer 3 null-routes to volatile kernel RAM in ~5 seconds.*
 
-#### 4. Enable Automated Startup
+#### 4. Enable Automated Startup & Reboot Survival
 Double-click:
 ```cmd
 install_tasks.bat
 ```
-Registers two persistent scheduled tasks:
-- **`Kernel_Blackhole_Engine`**: Re-injects volatile RAM routes on Windows startup (`-AtStartup`) and updates every 3 days under elevated administrative privileges (`RunLevel: Highest`).
-- **`YogaDNS_Sinkhole_Update`**: Refreshes domain blocklists every Sunday at 02:00.
+*(Or right-click and select **Run as Administrator**).*
+
+##### How Reboot Survival Works with Volatile RAM (`store=active`):
+- **Why Volatile RAM?**: Standard Windows routing persists entries into the Windows Registry (`HKLM\...\PersistentRoutes`). Sequentially committing 21,000+ routes to disk causes severe **Registry I/O Death**, locking the operating system for 30+ minutes during boot. To ensure instantaneous ~2 second deployment with zero disk wear, all routes are pushed directly to `TCPIP.sys` volatile memory using `store=active`.
+- **The Reboot Invariant**: Because volatile RAM routes intentionally vanish when the machine powers down or reboots, `install_tasks.ps1` establishes a **triple-trigger defense matrix** in Windows Task Scheduler so you never have to re-arm manually:
+  1. **Boot Trigger (`-AtStartup`)**: Executes `update_blackhole.bat` during the early Windows kernel boot phase, re-injecting all 21,000+ null-routes into RAM before application network traffic commences.
+  2. **Logon Trigger (`-AtLogOn`)**: Redundantly re-arms routes immediately upon administrative user logon (protecting against Fast Startup, hybrid sleep resume, and delayed network adapter initialization).
+  3. **Periodic Maintenance (`-Daily -DaysInterval 3`)**: Executes every 72 hours at 02:00 to pull the latest upstream C2 IP lists, recalculate Radix trees, and hot-reload RAM routes.
+- **YogaDNS Autostart**: Configured in `HKCU\...\Run` (`/AutoRun`) to mount WFP network drivers at logon and bind to `%APPDATA%\YogaDNS\optimized_hosts.txt`. The companion task **`YogaDNS_Sinkhole_Update`** refreshes the 4.4M+ domain blocklist every Sunday at 02:00 with zero downtime.
 
 ---
 

@@ -40,9 +40,10 @@ Step 3: Right-click "update_blackhole.bat" -> Run as Administrator.
           volatile kernel RAM in ~5 seconds.
 
 Step 4: Double-click "install_tasks.bat".
-        - Registers two native Windows Scheduled Tasks so both the
+        - Registers native Windows Scheduled Tasks so both the
           kernel RAM blackhole and YogaDNS updates execute automatically
-          at startup and on recurring schedules.
+          at machine boot and logon (ensuring volatile RAM routes survive
+          every reboot) and on 3-day/weekly recurring schedules.
 
 Step 5: Verify.
         - Connect WireGuard: YogaDNS logs route queries to Corporate Pool.
