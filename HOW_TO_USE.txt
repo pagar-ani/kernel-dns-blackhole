@@ -2,9 +2,15 @@
   kernel-dns-blackhole (v1.0.0) - Zero-Leak Dual-DNS & L3 Blackhole
 ====================================================================
 
-Solves two critical Windows endpoint security flaws:
-1. Corporate DNS queries leaking over public Wi-Fi when VPN drops.
-2. Windows dnscache CPU lockups from multi-megabyte hosts files.
+Two-Tier Endpoint Defense for Windows:
+1. Layer 3 Kernel RAM Blackhole (TCPIP.sys):
+   - Null-routes 65,000+ botnet/C2 IPs directly in volatile RAM in ~5s.
+   - Zero disk writes, zero registry bloat.
+2. Layer 7 Stateful Domain Sinkhole (YogaDNS):
+   - Blocks 3.6 million tracking/malware domains via optimized_hosts.txt.
+   - Auto-switches DNS: Uses Corporate DNS when WireGuard is connected,
+     and fails over to encrypted Cloudflare DoH when WireGuard drops.
+   - Zero corporate DNS leaks over public Wi-Fi.
 
 --------------------------------------------------------------------
   PREREQUISITES
@@ -19,20 +25,23 @@ Solves two critical Windows endpoint security flaws:
 Step 1: Open "Configuration.template.xml" in Notepad.
         - Replace "YOUR_WIREGUARD_INTERFACE_NAME" with your WireGuard
           adapter name (e.g. wg0 or tunnel name from WireGuard GUI).
-        - Replace "10.0.0.1" with your internal corporate DNS IP.
+        - Replace "YOUR_CORPORATE_DNS_IPV4" with your internal corporate
+          DNS IP.
         - Import into YogaDNS: File -> Import Configuration.
 
 Step 2: Double-click "update_sinkhole.bat".
         - Compiles 3.6 million domains from lst.txt into optimized
-          hosts format and hot-reloads YogaDNS with zero downtime.
+          hosts format (9 domains/line) and hot-reloads YogaDNS with
+          zero packet drop.
 
 Step 3: Right-click "update_blackhole.bat" -> Run as Administrator.
         - Ingests high-confidence malicious botnet/C2 IPs from ips.txt,
-          collapses subnets, and null-routes to loopback in ~5 seconds.
+          collapses subnets via Radix trees, and injects Layer 3 null-routes
+          into volatile kernel RAM in ~5 seconds flat.
 
 Step 4: Double-click "install_tasks.bat".
         - Registers two native Windows Scheduled Tasks so both the
-          kernel blackhole and YogaDNS updates run automatically
+          kernel RAM blackhole and YogaDNS updates run automatically
           on startup and on a recurring schedule.
 
 Step 5: Verify.
