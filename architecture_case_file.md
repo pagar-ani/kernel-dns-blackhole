@@ -13,8 +13,8 @@ Deploying flat threat-block lists directly into the Windows DNS Client (`svchost
 3. **WFP Bypass**: Third-party application firewalls (Simplewall, Windows Firewall) can be bypassed by driver priority conflicts or application-level socket hooks.
 
 This ecosystem resolves these issues using a two-tier hybrid defense:
-- **Layer 7 Stateful DNS Interceptor (YogaDNS Basic)**: Stateful conditional routing that binds to `Wintun` NDIS states and sinkholes 3.6M domains.
-- **Layer 3 Kernel Radix Blackhole (`TCPIP.sys`)**: Outbound malicious IP null-routing directly inside the Windows kernel network stack via `store=active` volatile RAM routing.
+- **Tier 1 (Layer 3) - Windows Kernel RAM Blackhole (`TCPIP.sys`)**: Outbound malicious IP null-routing directly inside the Windows kernel network stack via `store=active` volatile RAM routing (zero disk writes, zero registry bloat).
+- **Tier 2 (Layer 7) - Stateful Domain Interceptor (YogaDNS Basic)**: Stateful conditional routing that binds to `Wintun` NDIS states and sinkholes 3.6M domains via `optimized_hosts.txt` using 9-domain chunking.
 
 ---
 
@@ -70,7 +70,7 @@ This attribute in `Configuration.xml` controls the conditional failover:
 
 ### Server Pool Definitions:
 1. **Corporate-Pool**:
-   - `10.0.0.1` (Plain UDP) / `fd00::1` (IPv6 Plain UDP).
+   - `<YOUR_CORPORATE_DNS_IPV4>` (Plain UDP) / `<YOUR_CORPORATE_DNS_IPV6>` (Plain UDP).
    - > [!WARNING]  
      > **Never enable TCP or DNSSEC for internal corporate pools**. It introduces heavy RTT handshake penalties and triggers trust-chain validation failures on internal split-horizon zones.
 2. **Public-Pool**:
@@ -91,8 +91,8 @@ To eliminate dependency on software application firewalls, high-confidence malic
 3. **Bypassing WMI / PowerShell Memory Exhaustion**:
    Previous approaches using `Remove-NetRoute` for 65,000 routes exhaust WMI/CLR memory and freeze the OS for 3+ minutes.
    `deploy_blackhole.ps1` parses `netsh interface ipv4 show route` text output with Metric `9999`, generates flat `v4_clean.netsh` scripts, and tears down stale routes in <2 seconds.
-4. **Bypassing Windows "Registry I/O Death" (`store=active`)**:
+4. **Bypassing Windows "Registry I/O Death" (`store=active` in RAM)**:
    Standard persistent route injection writes to `HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\PersistentRoutes`. Writing 65,000 keys sequentially causes massive disk I/O lockups lasting 30+ minutes.
-   Adding `store=active` writes routes directly to volatile kernel RAM in **~5 seconds**.
+   Adding `store=active` writes routes directly to volatile kernel RAM in **~5 seconds** with **zero disk writes**.
 5. **Reboot Persistence via Task Scheduler**:
    Because `store=active` routes are cleared on reboot, the `Kernel_Blackhole_Engine` task runs `-AtStartup` under `NT AUTHORITY\SYSTEM` to rebuild the RAM routing table before user login completes.
