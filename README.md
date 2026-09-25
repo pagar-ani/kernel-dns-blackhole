@@ -19,7 +19,7 @@ Engineered to resolve two systemic networking limitations on Windows 10/11:
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ • Ingests high-confidence malicious botnet & C2 IP subnets from threat feeds. │
 │ • Stored entirely in volatile RAM (store=active) — Zero registry I/O bloat. │
-│ • Compiles and injects 65,000+ routes in ~5 seconds via native netsh.       │
+│ • Compiles and injects 21,000+ CIDRs (collapsed from 27,000+ feeds) in ~2 sec. │
 │ • Packets dropped at kernel routing boundary before socket inspection.      │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
@@ -161,13 +161,9 @@ To completely remove all routing entries and automated background schedules:
    ```cmd
    uninstall_tasks.bat
    ```
-   *Terminates running engines and unregisters scheduled tasks from Windows Task Scheduler.*
+   *Unregisters scheduled tasks from Windows Task Scheduler and instantly purges all metric 9999 RAM routes via netsh.*
 2. Reset or remove YogaDNS: Open YogaDNS $\to$ **File** $\to$ **Reset to Defaults** (or uninstall via Windows Settings).
-3. To flush all volatile kernel null-routes immediately without restarting:
-   ```powershell
-   Restart-Service -Name "Tcpip" -Force
-   ```
-   *(Or simply reboot the machine; all `store=active` routes clear automatically on power cycle).*
+3. Volatile routes also vanish automatically on machine reboot (zero residual registry footprint).
 
 ---
 
